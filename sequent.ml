@@ -80,7 +80,7 @@ module Sequent : SequentSig = struct
   type bookset = BSet.t
   type bookset_all = BSet.t * BSet.t * BSet.t * BSet.t 
                      * BSet.t * BSet.t * BSet.t * BSetR.t * BSetR.t
-                     * (Label.t option) * BSetG.t
+                     * (Label.t option) * BSetG.t * BSetG.t
   type context = (Label.t list) * context_id
   type frame = context list
   type sequent = frame * context * context * Label.t * bookset_all
@@ -109,7 +109,7 @@ module Sequent : SequentSig = struct
   (* create sequnet from a single label *)
   let create l = ([], ([], Global), ([], Local), l,
                   (empty_bset, empty_bset, empty_bset, empty_bset, empty_bset,
-                   empty_bset, empty_bset, empty_bsetr, empty_bsetr, None, empty_bsetg));;
+                   empty_bset, empty_bset, empty_bsetr, empty_bsetr, None, empty_bsetg, empty_bsetg));;
 
   let print_label label =
     "L_{" ^ (Label.print label) ^ "}";;
@@ -215,11 +215,10 @@ module Sequent : SequentSig = struct
        ()
     else () ) in
     let _ = (
-    if !max_depth > 34 then 
+    if !max_depth > 31 then 
       let _ = print_endline "===================================" in
       let _ = print_endline "max depth , trace back start" in
       let _ = print_endline "===================================" in
-      let _ = Printexc.print_backtrace stdout in
       let _ = raise MaxDepth in
         ()
     else () ) in 
@@ -268,7 +267,7 @@ module Sequent : SequentSig = struct
 
   let print_bset_all bset_all = 
 	(*  if !debug then *)
-	  let boxr, diar, disjr, botr, initr, boxt, diat, boxR, diaR,_,_ = bset_all in
+	  let boxr, diar, disjr, botr, initr, boxt, diat, boxR, diaR,_,_,_ = bset_all in
   		print_string "boxr  : "; print_bset boxr;
   		print_string "diar  : "; print_bset diar;
   		print_string "disjr : "; print_bset disjr;
@@ -282,39 +281,39 @@ module Sequent : SequentSig = struct
 	
   (* update bookkeeping set *)
   let update_bset_trunk bset_all rule lapp =
-    let boxr, diar, disjr, botr, initr, boxt, diat, boxR, diaR, lastBoxL, goalset = bset_all in
+    let boxr, diar, disjr, botr, initr, boxt, diat, boxR, diaR, lastBoxL, goalset, pset = bset_all in
     match rule with
       Rule.Box p -> (add_bset (diff_bset boxr boxt) lapp, diar,
                      empty_bset, empty_bset, empty_bset,
-                     empty_bset, empty_bset, empty_bsetr, empty_bsetr, Some (left_app_to_label lapp), goalset)
+                     empty_bset, empty_bset, empty_bsetr, empty_bsetr, Some (left_app_to_label lapp), goalset, empty_bsetg)
     | Rule.Dia p -> (diff_bset boxr boxt, add_bset (diff_bset diar diat) lapp,
                      empty_bset, empty_bset, empty_bset,
-                     empty_bset, empty_bset, boxR, empty_bsetr, lastBoxL, goalset)
+                     empty_bset, empty_bset, boxR, empty_bsetr, lastBoxL, goalset, empty_bsetg)
     | Rule.Disj p -> (diff_bset boxr boxt, diff_bset diar diat,
                       add_bset disjr lapp, empty_bset, empty_bset,
-                      empty_bset, empty_bset, boxR, diaR, lastBoxL, goalset)
+                      empty_bset, empty_bset, boxR, diaR, lastBoxL, goalset, empty_bsetg)
     | Rule.Bot p -> bset_all
     | Rule.Init p -> bset_all;;
 
   let update_bset_twig  bset_all rule lapp =
-    let boxr, diar, disjr, botr, initr, boxt, diat, boxR, diaR, lastBoxL, goalset = bset_all in
+    let boxr, diar, disjr, botr, initr, boxt, diat, boxR, diaR, lastBoxL, goalset, pset = bset_all in
     match rule with
       Rule.Box p -> (add_bset boxr lapp, diar, disjr, botr, initr,
-                     add_bset boxt lapp, diat, boxR, diaR, lastBoxL, goalset)
+                     add_bset boxt lapp, diat, boxR, diaR, lastBoxL, goalset, pset)
     | Rule.Dia p -> (boxr, add_bset diar lapp, disjr, botr, initr,
-                     boxt, add_bset diat lapp, boxR, diaR, lastBoxL, goalset)
+                     boxt, add_bset diat lapp, boxR, diaR, lastBoxL, goalset, pset)
     | Rule.Disj p -> (boxr, diar, add_bset disjr lapp, botr, initr,
-                      boxt, diat, boxR, diaR, lastBoxL, goalset)
+                      boxt, diat, boxR, diaR, lastBoxL, goalset, pset)
     | Rule.Bot p ->  (boxr, diar, disjr, add_bset botr lapp, initr,
-                     boxt, diat, boxR, diaR, lastBoxL, goalset) 
+                     boxt, diat, boxR, diaR, lastBoxL, goalset, pset) 
     | Rule.Init p -> (boxr, diar, disjr, botr, add_bset initr lapp, 
-                      boxt, diat, boxR, diaR, lastBoxL, goalset);;
+                      boxt, diat, boxR, diaR, lastBoxL, goalset, pset);;
 
   (* is this rule applicable to the sequent *) 
   let applicable seq rule lapp =
     (* let _ = if debug then print_string "applicable\n" else () in *)
     let (f, g, l, c, bset_all) = seq in
-    let boxr, diar, disjr, botr, initr, boxt, diat, boxR, diaR, lastBoxL, goalset = bset_all in
+    let boxr, diar, disjr, botr, initr, boxt, diat, boxR, diaR, lastBoxL, goalset, pset = bset_all in
     let the_bset =
       match rule with Rule.Box p -> boxr | Rule.Dia p -> diar
       | Rule.Disj p -> disjr | Rule.Bot p -> botr | Rule.Init p -> initr 
@@ -437,8 +436,8 @@ module Sequent : SequentSig = struct
 			in
 				if (fun3 l1 l2) then () else (raise (Bset_termination "context"))
 		in
-	  let boxr1, diar1, disjr1, botr1, initr1, boxt1, diat1,boxR1,diaR1,_,_ = bset1 in
-    let boxr2, diar2, disjr2, botr2, initr2, boxt2, diat2,boxR2,diaR2,_,_ = bset2 in
+	  let boxr1, diar1, disjr1, botr1, initr1, boxt1, diat1,boxR1,diaR1,_,_,_ = bset1 in
+    let boxr2, diar2, disjr2, botr2, initr2, boxt2, diat2,boxR2,diaR2,_,_,_ = bset2 in
 		let box1 = diff_bset boxr1 boxt1 in
 		let box2 = diff_bset boxr2 boxt2 in
 		let _ = test box1 box2 "box_union" in
@@ -474,12 +473,12 @@ module Sequent : SequentSig = struct
 		let res_trunk, res_twig = 
       let twig_bset_all = update_bset_twig bset_all rule lapp in
       let trunk_bset_all = update_bset_trunk bset_all rule lapp in
-      let seq_twig = 
+      let seq_twig : sequent = 
         match lapp with
           L1 (_, _) -> (f, g, l, c, twig_bset_all)
         | L3 (_, ctxt_id) -> switch_ctxt (f,g,l,c,twig_bset_all) ctxt_id
       in
-      let seq_trunk = (f, g, l, c, trunk_bset_all) in
+      let seq_trunk : sequent = (f, g, l, c, trunk_bset_all) in
       match rule with
         Rule.Box (twigs, Rule.TrunkL2 newl, _) -> 
           let trunk1 = (add_to_global seq_trunk newl) in
@@ -496,41 +495,35 @@ module Sequent : SequentSig = struct
 					([],gen_twigs seq_twig twigs)
       | _ -> raise Sequent_error
 		in
-		  let _ = 
-				if !debug 
-				then (List.map (bset_test seq) res_trunk, 
-							List.map (bset_test seq) res_twig) 
-				else ([],[])
-		  in
-				(res_trunk, res_twig) 
+			(res_trunk, res_twig) 
 
   let update_seq_bset_box_r seq label = 
 		let (f,g,l,c,bset_all) = seq in
-    let boxr, diar, disjr, botr, initr, boxt, diat, boxR, diaR, lastBoxL, goalset = bset_all in
+    let boxr, diar, disjr, botr, initr, boxt, diat, boxR, diaR, lastBoxL, goalset, pset = bset_all in
 		let new_bset_all = 
 			  (diff_bset boxr boxt, diff_bset diar diat, 
 				 empty_bset, empty_bset, empty_bset, empty_bset, empty_bset,
-				 BSetR.add label boxR, diaR, lastBoxL, goalset)
+				 BSetR.add label boxR, diaR, lastBoxL, goalset, pset)
 		in
 			(f,g,l,c,new_bset_all)
 
   let update_seq_bset_dia_r2 seq label = 
 		let (f,g,l,c,bset_all) = seq in
-    let boxr, diar, disjr, botr, initr, boxt, diat, boxR, diaR, lastBoxL, goalset= bset_all in
+    let boxr, diar, disjr, botr, initr, boxt, diat, boxR, diaR, lastBoxL, goalset, pset= bset_all in
 		let new_bset_all = 
 			  (diff_bset boxr boxt, diff_bset diar diat, 
 				 empty_bset, empty_bset, empty_bset, empty_bset, empty_bset,
-				 boxR, BSetR.add label diaR, lastBoxL, goalset)
+				 boxR, BSetR.add label diaR, lastBoxL, goalset, BSetG.empty)
 		in
 			(f,g,l,c,new_bset_all)
 
   let update_seq_bset_imp_r2 seq = 
 		let (f,g,l,c,bset_all) = seq in
-    let boxr, diar, disjr, botr, initr, boxt, diat, boxR, diaR, lastBoxL, goalset = bset_all in
+    let boxr, diar, disjr, botr, initr, boxt, diat, boxR, diaR, lastBoxL, goalset, pset = bset_all in
 		let new_bset_all = 
 			  (diff_bset boxr boxt, diff_bset diar diat, 
 				 empty_bset, empty_bset, empty_bset, empty_bset, empty_bset,
-				 boxR, diaR, lastBoxL, goalset)
+				 boxR, diaR, lastBoxL, goalset, BSetG.empty)
 		in
 			(f,g,l,c,new_bset_all)
 
@@ -551,7 +544,13 @@ module Sequent : SequentSig = struct
       let (f,g,l,c,bset_all) = seq in
       let (local_list, local_id) = l in
       let (global_list, _) = g in
-      let boxr, diar, disjr, botr, initr, boxt, diat, boxR, diaR, lastBoxL, goalset = bset_all in
+      let boxr, diar, disjr, botr, initr, boxt, diat, boxR, diaR, lastBoxL, goalset, pset = bset_all in
+      (* phc - another begin end enclosure, be cautious! *)
+      if BSetG.mem (c, local_id) pset then NoProof else begin
+
+      let pset = BSetG.add (c,local_id) pset in
+      let bset_all = (boxr, diar, disjr, botr, initr, boxt, diat, boxR, diaR, lastBoxL, goalset, pset) in
+      let seq = (f,g,l,c,bset_all) in
       
       let rec prove_disj_list l fun1 =
         match l with
@@ -611,13 +610,17 @@ module Sequent : SequentSig = struct
       in
   
       let build_goal_seq (f,g,(_, local_id),c,bset_all) = (c, local_id) in
-      let update_goalset new_goalset seq = 
+
+      let update_goalset new_goalset seq =
         let (f,g,l,c,bset_all) = seq in
         let this_goal = build_goal_seq seq in
-        let new_goalset = BSetG.remove this_goal new_goalset in
-        let boxr, diar, disjr, botr, initr, boxt, diat, boxR, diaR, lastBoxL, goalset = bset_all in
-        let bset_all = (boxr, diar, disjr, botr, initr, boxt, diat, boxR,diaR,lastBoxL,(BSetG.union goalset new_goalset)) in
-          (f,g,l,c, bset_all)
+        let new_goalset : BSetG.t = BSetG.remove this_goal new_goalset in
+        let boxr, diar, disjr, botr, initr, boxt, diat, boxR, diaR, lastBoxL, goalset, pset = bset_all in
+        let bset_all : bookset_all = 
+          (boxr, diar, disjr, botr, initr, boxt, diat, boxR,diaR,lastBoxL,
+          BSetG.union goalset new_goalset, pset) in
+        let ret : sequent = (f,g,l,c,bset_all) in
+          ret
       in
   
       let focus_label_local label =
@@ -632,9 +635,9 @@ module Sequent : SequentSig = struct
             let (trunks, twigs) = apply seq rule lapp in
             let goalset = List.map build_goal_seq trunks in 
             let goalset = goalset @ (List.map build_goal_seq twigs) in
-            let goalset = List.fold_left (fun s e -> BSetG.add e s) BSetG.empty goalset in
-            let trunks = List.map (update_goalset goalset) trunks in
-            let twigs = List.map (update_goalset goalset) twigs in 
+            let goalset : BSetG.t = List.fold_left (fun s e -> BSetG.add e s) BSetG.empty goalset in
+            let trunks : sequent list = List.map (update_goalset goalset) trunks in
+            let twigs : sequent list = List.map (update_goalset goalset) twigs in 
             let trunk_proofs = prove_conj_list trunks prove in
             let twig_proofs = prove_conj_list twigs prove in
               if List.mem NoProof trunk_proofs then NoProof
@@ -732,14 +735,14 @@ module Sequent : SequentSig = struct
               else () in 
       let _ = if !debug then print_endline "]" else () in
         result
-    end in
+    end end in
       prove seq
   
   exception Reconstruct
 
   let rec print_proof seq p lookup rule_map =
     let (f,g,l,c,bset_all) = seq in
-    let boxr, diar, disjr, botr, initr, boxt, diat, boxR, diaR, lastBoxL, _ = bset_all in
+    let boxr, diar, disjr, botr, initr, boxt, diat, boxR, diaR, lastBoxL, _, _ = bset_all in
     let local_list, local_id = l in
     let comp, s = LabelLookup.find lookup c in
     let proof_struct =
