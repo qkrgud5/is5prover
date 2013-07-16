@@ -797,7 +797,7 @@ module Sequent : SequentSig = struct
  	    let _ = if result=NoProof 
               then debug_print ("Fail : "^(print seq))
               else debug_print ("Succeed : "^(print seq)) in
-
+      (* update history list *)
       let rec update_middle l1 l2 idx fn =
         if l2 = [] then let _ = print_endline "update middle error" in [] 
         else if List.length l2 = idx then l1@((fn (List.hd l2))::(List.tl l2))

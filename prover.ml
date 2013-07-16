@@ -98,6 +98,8 @@ let input_from_file _ =
   let quit_loop = ref false in
     while not !quit_loop do
       let str = try input_line infile with End_of_file -> quit_loop:=true; "q" in
+      print_endline "";
+      print_endline "------------------------------------------------";
       print_endline str;
       if str="q" or str="quit" then 
         quit_loop:=true
