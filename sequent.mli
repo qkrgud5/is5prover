@@ -26,7 +26,7 @@ module type SequentSig = sig
   type sequent = frame * context * context * Label.t * bookset_all
   type proof = Left of left_app * (proof list) * (proof list) 
              | Right of right_app * (proof list)
-             | Done | NoProof
+             | Done | NoProof | NotYet
 
   val empty_bset : bookset
   val add_bset : bookset -> left_app -> bookset 

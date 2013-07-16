@@ -24,7 +24,7 @@ module type SequentSig = sig
   type sequent = frame * context * context * Label.t * bookset_all
   type proof = Left of left_app * (proof list) * (proof list) 
              | Right of right_app * (proof list)
-             | Done | NoProof 
+             | Done | NoProof | NotYet
 
   val empty_bset : bookset
   val add_bset : bookset -> left_app -> bookset 
@@ -86,7 +86,7 @@ module Sequent : SequentSig = struct
   type sequent = frame * context * context * Label.t * bookset_all
   type proof = Left of left_app * (proof list) * (proof list) 
              | Right of right_app * (proof list)
-             | Done | NoProof
+             | Done | NoProof | NotYet
 
   (* debug switch *)
   let debug = ref false;;
@@ -109,7 +109,8 @@ module Sequent : SequentSig = struct
   (* create sequnet from a single label *)
   let create l = ([], ([], Global), ([], Local), l,
                   (empty_bset, empty_bset, empty_bset, empty_bset, empty_bset,
-                   empty_bset, empty_bset, empty_bsetr, empty_bsetr, None, empty_bsetg, empty_bsetg));;
+                   empty_bset, empty_bset, empty_bsetr, empty_bsetr, None,
+                   empty_bsetg, empty_bsetg));;
 
   let print_label label =
     "L_{" ^ (Label.print label) ^ "}";;
@@ -194,47 +195,82 @@ module Sequent : SequentSig = struct
     in
       fun1 "" pat n;;
 
+  (* raise MaxDepth when the call depth of prove fun is over the limit *)
   exception MaxDepth
 
-  let max_depth = ref 0;;
-  (* debug print code *)
-  let debug_level = ref 0;;
+  (* debug_cnt simply counts the number debug_print *) 
 	let debug_cnt = ref 0;;
-  let debug_call_cnt = ref 0;;
-  let debug_ret_cnt = ref 0;;
-  let debug_reset _ = let _ = debug_level:=0; debug_cnt:=0; debug_call_cnt:=0 in () ;;
-  let debug_call _ = 
-    let _ = debug_level:=!debug_level+1; debug_call_cnt:=!debug_call_cnt+1 in
-    let _ = (
-      if !debug_level > !max_depth then 
-      let _ = max_depth := !debug_level in
-      let _ = print_endline "===================================" in
-      let _ = print_endline ("max depth " ^ (string_of_int !debug_level)) in
-      let _ = print_endline ("curr cnt " ^ (string_of_int !debug_call_cnt)) in
-      let _ = print_endline "===================================" in
-       ()
-    else () ) in
-    let _ = (
-    if !max_depth > 31 then 
-      let _ = print_endline "===================================" in
-      let _ = print_endline "max depth , trace back start" in
-      let _ = print_endline "===================================" in
-      let _ = raise MaxDepth in
-        ()
-    else () ) in 
-      ();;
-
-  let debug_ret _ = debug_level:=!debug_level-1; debug_ret_cnt:=!debug_ret_cnt+1;;
-
+  let call_level = ref 0;;
   let debug_print str = 
     if !debug then
 			let _ = debug_cnt := !debug_cnt + 1 in
       (* let _ = (if !debug_cnt mod 1=0 then (input_line stdin) else "") in *)
-      (print_string ((repeat " " !debug_level)^"|"); print_string str;
+      (print_string ((repeat " " !call_level)^"|"); print_string str;
        print_newline ())
     else ();;
 
-  let get_call_cnt _ = !debug_call_cnt;;
+  let max_depth = ref 0;;
+  (* call depth counts the number of call frame
+     some of prove fun call may exit without doing anything (due to redun)
+     in that case, we don't count max_depth alive.
+     max_depth_alive is practical call depth used for coverage test *)
+  let max_depth_alive = ref 0;;
+  let depth_history = ref [];;
+
+  (* call_level means the current number of prove fun call frames
+     max value of call_cnt updates max_depth and max_depth_alive *)
+  let call_cnt = ref 0;;
+  let call_reset _ = 
+    debug_cnt:=0;  call_level:=0;
+    call_cnt:=0; depth_history:=[];
+    max_depth:=0; max_depth_alive:=0; ();;
+  let call_mark _ = 
+    call_level:=!call_level+1;
+    call_cnt:=!call_cnt+1;
+    if !call_level > !max_depth then begin
+      max_depth := !call_level;
+      debug_print ("======================================");
+      debug_print ("max_depth" ^ (string_of_int !call_level));
+      debug_print ("======================================") end
+    else ();
+    if !max_depth > 50 then begin
+      debug_print ("======================================");
+      debug_print ("max_depth reaches limit, start backtrace");
+      debug_print ("======================================");
+      raise MaxDepth
+    end else ();;
+
+  let call_mark_ret  _ = call_level:=!call_level-1;;
+
+  (* formulas of seq1 are covered by those of seq2 *)
+  (* If we have seq2 in history, then give up seq1 *)
+  let test_incl seq1 seq2 =
+    let (f1,(g1,_),(l1, _),c1,bset1) = seq1 in
+		let (f2,(g2,_),(l2, _),c2,bset2) = seq2 in
+    let ctx_incl l1 l2 = List.for_all (fun ll1 -> List.exists (fun ll2 -> ll1=ll2) l2) l1 in
+      if c1!=c2 then false
+      else if ctx_incl g1 g2 = false then false
+      else if ctx_incl l1 (g2@l2) = false then false
+      else if (List.for_all (fun (ff1,_) -> List.exists (fun (ff2,_) -> ctx_incl ff1 (g2@ff2)) f2) f1)=false then false
+      else true;;
+
+  (* None : no match found in the history
+     Some Done : match found and already proven
+     Some NoProof : match found and already refuted
+     Some NotYet : match found and the sequent is not yet completed
+                   that is, the sequent found is one of current seq's parents *)
+  let test_in_history seq =
+    let res = List.fold_left (fun last (seqh, closed) -> 
+      match last with 
+      | None -> begin match closed with 
+                | NotYet -> Some NotYet 
+                | _ -> if test_incl seqh seq then Some closed else None end
+      | Some Done | Some NoProof -> last
+      | _ -> print_endline "history error"; None) None !depth_history 
+    in
+      res;;
+
+  let get_call_cnt _ = !call_cnt;;
   exception ProverError of string
 
   (* list operation used to change frame contexts of sequent *)
@@ -264,10 +300,15 @@ module Sequent : SequentSig = struct
 
 	let print_bsetr set1 =
     let _ = BSetR.iter (fun x -> print_string (Label.print x); print_string "," ) set1; print_newline () in ();;
+	
+  let print_bsetg set1 =
+    let _ = BSetG.iter (fun (x, ctx_id) -> print_string (Label.print x); print_string ","; print_string (print_ctxt_id ctx_id); print_string "; ") set1; print_newline () in ();;
+
 
   let print_bset_all bset_all = 
-	(*  if !debug then *)
-	  let boxr, diar, disjr, botr, initr, boxt, diat, boxR, diaR,_,_,_ = bset_all in
+	 if !debug then
+	  let boxr, diar, disjr, botr, initr, boxt,
+        diat, boxR, diaR,_,_,pset = bset_all in
   		print_string "boxr  : "; print_bset boxr;
   		print_string "diar  : "; print_bset diar;
   		print_string "disjr : "; print_bset disjr;
@@ -276,8 +317,9 @@ module Sequent : SequentSig = struct
   		print_string "boxt  : "; print_bset boxt;
   		print_string "diat  : "; print_bset diat;
   		print_string "boxR  : "; print_bsetr boxR;
-  		print_string "diaR  : "; print_bsetr diaR
-(*    else () *)
+  		print_string "diaR  : "; print_bsetr diaR;
+  		print_string "pset  : "; print_bsetg pset
+   else ()
 	
   (* update bookkeeping set *)
   let update_bset_trunk bset_all rule lapp =
@@ -534,13 +576,12 @@ module Sequent : SequentSig = struct
 
   (* main proof search function *)
   let prove_fun seq lookup rule_map = 
-    let _ = debug_reset () in
+    let _ = call_reset () in
     let _ = debug_print "start prove_fun" in
     let rec prove : sequent -> proof = 
       fun seq -> begin
       
-      let next_call = ref "" in
-      let test_level = !debug_level in
+      let test_level = !call_level in
       let (f,g,l,c,bset_all) = seq in
       let (local_list, local_id) = l in
       let (global_list, _) = g in
@@ -706,32 +747,73 @@ module Sequent : SequentSig = struct
           List.fold_left (fun lastp f -> if lastp=NoProof then (f ()) else lastp) NoProof prove_funs 
       in
 
-      let cur_depth = !debug_level in
-      let _ = debug_call () in
+      let cur_depth = !call_level in
+      let mark_hist_added = ref false in
+      let mark_idx_rev = ref 0 in
+      let covered_by = 
+        if cur_depth+1 > !max_depth_alive then begin
+          debug_print (print seq);
+          print_bset_all bset_all; 
+          let hist_check = test_in_history seq in
+            if hist_check=None then begin
+              depth_history:=(seq, NotYet)::!depth_history;
+              mark_idx_rev := List.length !depth_history;
+              mark_hist_added:=true;
+              None end 
+            else hist_check 
+        end else None
+      in
       let _ = debug_print (print seq) in
+      let _ = call_mark () in
       let result = 
-        if goal_id_redun local_id c goalset then
-          Done
+        (* goalset test if the pair of (local context id, goal formula label) is in the goal set, then it is already done *)
+        (* the goalset consists of the all the goal id for those sequents in the same domain with lower level *)
+        if goal_id_redun local_id c goalset then Done  
+        else if covered_by=Some NoProof then NoProof
+        else if covered_by=Some Done then Done 
         else begin
-          (* phc debug *)
+          (* the seq survives all the tests. the seq is worth trying to prove (alive) *)
+          if cur_depth > !max_depth_alive then max_depth_alive := cur_depth;
+          (* phc debug, open bracket without indentation *)
           if !debug then print_endline "[";
-          (* print_endline (print seq); *)
-          (* print_bset_all bset_all; *)
+          debug_print (print seq); 
+          print_bset_all bset_all; 
+          (* main body of prover which tries to prove the seq by applying left rules and right rules *)
           try run_prove_funs ()
-          with MaxDepth ->
-           (let _ = print_endline "==============================================" in
-            let _ = print_endline (string_of_int cur_depth) in
-            let _ = print_endline (print seq) in
-            let _ = print_bset_all bset_all in
-             raise MaxDepth)
-          | _ -> print_endline "what is this exception?"; raise MaxDepth
+          with MaxDepth -> begin
+            print_endline "==============================================";
+            print_endline (string_of_int cur_depth);
+            print_endline (print seq);
+            print_bset_all bset_all;
+            raise MaxDepth end
+          | _ -> 
+            (* does not allow exceptions other than MaxDepth *)
+            print_endline "what is this exception?";
+            raise MaxDepth
         end
       in
-      let _ = debug_ret () in
- 	    let _ = if result=NoProof then debug_print ("Fail : "^(print seq))
+      (* post prover operations *) 
+      let _ = call_mark_ret () in
+ 	    let _ = if result=NoProof 
+              then debug_print ("Fail : "^(print seq))
               else debug_print ("Succeed : "^(print seq)) in
-      let _ = if !debug_level != test_level then 
-                let _ = Printf.printf "%d %d" (!debug_level) test_level in raise LevelError 
+
+      let rec update_middle l1 l2 idx fn =
+        if l2 = [] then let _ = print_endline "update middle error" in [] 
+        else if List.length l2 = idx then l1@((fn (List.hd l2))::(List.tl l2))
+        else update_middle (l1 @ [(List.hd l2)]) (List.tl l2) idx fn
+      in
+      
+      let update_hist_list _ = update_middle [] !depth_history !mark_idx_rev 
+                (function (seqh, NotYet) -> (seqh, if result=NoProof then NoProof else Done) 
+                   | _ -> let _ = print_endline "update middle error2" in raise Not_found)
+      in
+
+      let _ = if !mark_hist_added then depth_history:=update_hist_list () else () in
+      (* notifies when call and ret marks are not consistent *)
+      let _ = if !call_level != test_level then 
+                let _ = Printf.printf "%d %d" (!call_level) test_level in
+                raise LevelError 
               else () in 
       let _ = if !debug then print_endline "]" else () in
         result
@@ -835,6 +917,7 @@ module Sequent : SequentSig = struct
             (print_left rule_map (L3 (ruleid, ctxt_id)), List.concat [trunk_str;twig_str])
       | Done -> ("Done", [])
       | NoProof -> ("NoProof", [])
+      | NotYet -> raise (ProverError "print_proof encounters a NotYet node")
     in
     let rule, premises = proof_struct in
     let concl_str = print seq in
