@@ -166,8 +166,8 @@ module Sequent : SequentSig = struct
     let local_list, _ = l in
     let new_f = if local_list=[] then f else (l::f) in
       (* phc - test : no lastBoxL *)
-      (* (new_f,g,([], BoxR (lastBoxL, label)),c,bset_all)  *)
-      (new_f,g,([], BoxR (None, label)),c,bset_all) ;;
+    (*  (new_f,g,([], BoxR (lastBoxL, label)),c,bset_all);; *)
+      (new_f,g,([], BoxR (None, label)),c,bset_all) ;; 
 
   (* returns all the sequent which exchanged local context with an accessible context *)    
   let switch_ctxt_all (f,g,l,c,bset_all) =
@@ -233,7 +233,7 @@ module Sequent : SequentSig = struct
       debug_print ("max_depth" ^ (string_of_int !call_level));
       debug_print ("======================================") end
     else ();
-    if !max_depth > 50 then begin
+    if !max_depth > 1000 then begin
       debug_print ("======================================");
       debug_print ("max_depth reaches limit, start backtrace");
       debug_print ("======================================");
@@ -510,8 +510,29 @@ module Sequent : SequentSig = struct
 				print_string "premi ------------\n"; print_bset_all bset2;
 					raise (Bset_termination reason)
 
+  (* find the principal formula and remove it *)
+  let remove_in_ctx (label_list, ctx_id) label =
+    let rec remove_in_list l r a =
+      match l with
+        [] -> [] (* in global context *)
+      | hd::tl -> if hd==a then tl@l else remove_in_list tl (hd::r) a 
+    in
+      (remove_in_list label_list [] label, ctx_id)
+
+  let remove_in_frame ctx_list ctx_id label =
+    let rec find_in_frame ctx_list ctx_id label res =
+      match ctx_list with
+        [] -> [] (* in global context *)
+      | (ll, it_ctx_id)::tl -> if it_ctx_id==ctx_id 
+                               then (remove_in_ctx (ll, ctx_id) label)::res@tl 
+                               else find_in_frame tl ctx_id label ((ll,it_ctx_id)::res)
+    in
+      find_in_frame ctx_list ctx_id label []
+
   let apply seq rule lapp =
     let (f, g, l, c, bset_all) = seq in
+(*    let l = match lapp with L1 (Rule.ID (label,_),_)  -> remove_in_ctxt l label | _ -> l in *)
+(*    let f = match lapp with L3 (Rule.ID (label,_),ctx_id) -> remove_in_frame f ctx_id label | _ -> f in *)
 		let res_trunk, res_twig = 
       let twig_bset_all = update_bset_twig bset_all rule lapp in
       let trunk_bset_all = update_bset_trunk bset_all rule lapp in
