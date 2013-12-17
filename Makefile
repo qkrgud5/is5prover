@@ -4,7 +4,7 @@ SRC = lexer.mll parser.mly def.ml latex.mli latex.ml formula.mli formula.ml \
 label.mli label.ml labellookup.mli labellookup.ml rule.mli rule.ml \
 sequent.mli sequent.ml prover.ml Makefile README
 
-CC = ocamlopt
+CC = ocamlopt.opt
 
 prover: prover.ml sequent.cmx rule.cmx latex.cmx
 	$(CC) -c prover.ml
