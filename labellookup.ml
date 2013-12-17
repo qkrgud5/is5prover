@@ -183,8 +183,8 @@ module LabelLookup : LabelLookupSig = struct
 
   let print_comp c = 
     match c with
-      Top -> "T"
-    | Bot -> "B"
+      Top -> "true"
+    | Bot -> "false"
     | Atom -> "Atom"
     | Conj (l1, l2) -> (Label.print l1) ^ "/\\" ^ (Label.print l2)
     | Disj (l1, l2) -> (Label.print l1) ^ "\\/" ^ (Label.print l2)

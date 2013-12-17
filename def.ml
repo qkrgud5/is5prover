@@ -2,8 +2,8 @@ type t = Top | Bot | Atom of string
        | Conj of t*t | Disj of t*t | Imp of t*t
        | Box of t | Dia of t | Neg of t
 
-let top = "T"
-let bot = "F"
+let top = "true"
+let bot = "false"
 let atom = ""
 let neg = "~"
 let conj = "&"

@@ -14,8 +14,6 @@ exception Eof
 rule token = parse
   [' ' '\t']	{token lexbuf}
 | ['\n']	{EOL}
-| 'T' {TOP}
-| 'F' {BOT}
 | "true" {TOP}
 | "false" {BOT}
 | '~' {NEG}

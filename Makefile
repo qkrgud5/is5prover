@@ -45,7 +45,7 @@ latex.cmx: latex.mli latex.ml
 	$(CC) -c latex.ml
 
 clean:
-	rm -f *.cmx *.cma lexer.ml parser.ml parser.mli *.cmi result\.* sequent 
+	rm -f *.cmx *.cma lexer.ml parser.ml parser.mli *.cmi result\.* sequent *.o
 	rm -f *.tex *.log result[0-9]*\.*
 
 cleanswp:

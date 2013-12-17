@@ -16,8 +16,8 @@ usage: ./prover [-i input_file] [-o output_tex] [-n] [-s shell_script]
 Input Syntax
 
 P := [a-Z] ([alphanum])*                  # atomic formulas 
-A := P | T | F | ~ A | A & A | A v A | A -> A | box A | dia A | (A)                
-   | true | false | A <-> A               # syntatic sugar
+A := P | true | false | ~ A | A & A | A v A | A -> A | box A | dia A | (A)                
+     | A <-> A               # syntatic sugar (A<->B means (A->B & B->A))
 
 
 Sample Input
