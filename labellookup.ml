@@ -9,12 +9,13 @@ open Label
 open Formula
 
 module type LabelLookupSig = sig
+  type tu
   type composite = Top | Bot | Atom
                  | Conj of Label.t*Label.t
 		 | Disj of Label.t*Label.t
 		 | Imp  of Label.t*Label.t
-		 | Box  of Label.t
-		 | Dia  of Label.t
+		 | Box  of Label.t*tu
+		 | Dia  of Label.t*tu
   type sign_l1 = L1 | F1 | N1
   type sign_l2 = L2 | F2 | N2
   type sign = L of sign_l1*sign_l2 | LR of sign_l1*sign_l2 | R
@@ -30,12 +31,13 @@ module type LabelLookupSig = sig
 end;;
 
 module LabelLookup : LabelLookupSig = struct
+  type tu = int
   type composite = Top | Bot | Atom
                  | Conj of Label.t*Label.t
 		 | Disj of Label.t*Label.t
 		 | Imp  of Label.t*Label.t
-		 | Box  of Label.t
-		 | Dia  of Label.t
+		 | Box  of Label.t*tu
+		 | Dia  of Label.t*tu
   type sign_l1 = L1 | F1 | N1
   type sign_l2 = L2 | F2 | N2
   type sign = L of sign_l1*sign_l2 | LR of sign_l1*sign_l2 | R
@@ -99,12 +101,13 @@ module LabelLookup : LabelLookupSig = struct
     | Conj (l1,l2) -> "\\wedge"
     | Disj (l1,l2) -> "\\vee"
     | Imp (l1,l2) -> "\\supset"
-    | Box l1 -> "\\Box"
-    | Dia l1 -> "\\Diamond"
+    | Box (l1,lu) -> "\\Box"
+    | Dia (l1,lu) -> "\\Diamond"
 
   (* This build fun implements signed inference rules correspoding to each connective. *)
   let build f lmap =
-    let rec fun1 f s lmap lookup =
+    let uniq_cnt = ref 1 in
+    let rec fun1 f s lmap lookup  =
       let l = Label.find lmap f in
       match f with
         Formula.Top -> add lookup (l, Top, s)
@@ -119,8 +122,8 @@ module LabelLookup : LabelLookupSig = struct
                                    (if sl2=N2 then N2 else F2))
             | R -> R
           in
-          let lookup1 = fun1 f1 s1 lmap lookup in
-          let lookup2 = fun1 f2 s1 lmap lookup1 in
+          let lookup1 = fun1 f1 s1 lmap lookup  in
+          let lookup2 = fun1 f2 s1 lmap lookup1  in
           let c = Conj (Label.find lmap f1, Label.find lmap f2) in
             add lookup2 (l, c, s)
       | Formula.Disj (f1, f2) ->
@@ -130,8 +133,8 @@ module LabelLookup : LabelLookupSig = struct
             | LR (sl1, sl2) -> LR (L1, N2)
             | R -> R
           in
-          let lookup1 = fun1 f1 s1 lmap lookup in
-          let lookup2 = fun1 f2 s1 lmap lookup1 in
+          let lookup1 = fun1 f1 s1 lmap lookup  in
+          let lookup2 = fun1 f2 s1 lmap lookup1  in
           let c = Disj (Label.find lmap f1, Label.find lmap f2) in
             add lookup2 (l, c, s)
       | Formula.Imp (f1, f2) ->
@@ -160,8 +163,9 @@ module LabelLookup : LabelLookupSig = struct
             | LR (sl1, sl2) -> LR (N1, L2)
             | R -> R
           in
-          let lookup1 = fun1 f1 s1 lmap lookup in
-          let c = Box (Label.find lmap f1) in
+          let lookup1 = fun1 f1 s1 lmap lookup  in
+          let c = Box (Label.find lmap f1, !uniq_cnt) in
+          let _ = uniq_cnt := !uniq_cnt + 1 in
             add lookup1 (l, c, s)
       | Formula.Dia f1 ->
           let s1 =
@@ -170,11 +174,12 @@ module LabelLookup : LabelLookupSig = struct
             | LR (sl1, sl2) -> LR (L1, N2)
             | R -> R
           in
-          let lookup1 = fun1 f1 s1 lmap lookup in
-          let c = Dia (Label.find lmap f1) in
+          let lookup1 = fun1 f1 s1 lmap lookup  in
+          let c = Dia (Label.find lmap f1, !uniq_cnt) in
+          let _ = uniq_cnt := !uniq_cnt + 1 in
             add lookup1 (l, c, s)
     in
-      fun1 f R lmap empty
+      fun1 f R lmap empty 
 
   let print_comp c = 
     match c with
@@ -184,8 +189,8 @@ module LabelLookup : LabelLookupSig = struct
     | Conj (l1, l2) -> (Label.print l1) ^ "/\\" ^ (Label.print l2)
     | Disj (l1, l2) -> (Label.print l1) ^ "\\/" ^ (Label.print l2)
     | Imp  (l1, l2) -> (Label.print l1) ^ "->"  ^ (Label.print l2)
-    | Box l1 -> "[]" ^ (Label.print l1)
-    | Dia l1 -> "<>" ^ (Label.print l1)
+    | Box (l1, lu) -> "[]" ^ (Label.print l1)
+    | Dia (l1, lu) -> "<>" ^ (Label.print l1)
 
   let print_sign_l1 sl1 =
     match sl1 with

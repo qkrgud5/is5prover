@@ -12,12 +12,13 @@ open Label
 open Formula
 
 module type LabelLookupSig = sig
+  type tu
   type composite = Top | Bot | Atom
                  | Conj of Label.t*Label.t
 		 | Disj of Label.t*Label.t
 		 | Imp  of Label.t*Label.t
-		 | Box  of Label.t
-		 | Dia  of Label.t
+		 | Box  of Label.t*tu
+		 | Dia  of Label.t*tu
   type sign_l1 = L1 | F1 | N1
   type sign_l2 = L2 | F2 | N2
   type sign = L of sign_l1*sign_l2 | LR of sign_l1*sign_l2 | R

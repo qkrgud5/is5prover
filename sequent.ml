@@ -162,12 +162,12 @@ module Sequent : SequentSig = struct
   let add_to_local (f,g,(local_list, local_id),c,bset_all) l =
     (f,g,(l::local_list,local_id),c,bset_all);;
 
-  let boxr_empty_local (f,g,l,c,bset_all) lastBoxL label =
+  let boxr_empty_local (f,g,l,c,bset_all) lastBoxL label_uniq =
     let local_list, _ = l in
     let new_f = if local_list=[] then f else (l::f) in
       (* phc - test : no lastBoxL *)
-    (*  (new_f,g,([], BoxR (lastBoxL, label)),c,bset_all);; *)
-      (new_f,g,([], BoxR (None, label)),c,bset_all) ;; 
+      (new_f,g,([], BoxR (lastBoxL, label_uniq)),c,bset_all);; 
+    (*  (new_f,g,([], BoxR (None, label)),c,bset_all) ;; *)
 
   (* returns all the sequent which exchanged local context with an accessible context *)    
   let switch_ctxt_all (f,g,l,c,bset_all) =
@@ -650,15 +650,15 @@ module Sequent : SequentSig = struct
             else (prove (update_seq_bset_imp_r2 new_seq_l1))
           in
             if p1=NoProof then p1 else Right (Imp, [p1])
-        | LabelLookup.Box l1 ->
-					if BSetR.mem c boxR then NoProof 
-          else 
+        | LabelLookup.Box (l1,lu) ->
+					if BSetR.mem c boxR then NoProof
+          else
             let new_seq = boxr_empty_local seq lastBoxL c in
             let new_seq = repl_concl new_seq l1 in
 			  		let new_seq = update_seq_bset_box_r new_seq c in
             let p = prove new_seq in
               if p = NoProof then p else Right (Box, [p])
-        | LabelLookup.Dia l1 ->
+        | LabelLookup.Dia (l1,lu) ->
           let new_seq = (f,g,l,l1,bset_all) in
           let new_seq_r2 = update_seq_bset_dia_r2 (f,g,l,l1,bset_all) c in
           let seqh = (new_seq, fun x -> if x=NoProof then NoProof else Right (Dia_a,[x])) in
@@ -898,7 +898,7 @@ module Sequent : SequentSig = struct
           let premise = print_proof seq1 proof1 lookup rule_map in
             ("\\supset R", [premise])
       | Right (Box, plist) ->
-          let l1 = match comp with LabelLookup.Box l1 -> l1 
+          let l1 = match comp with LabelLookup.Box (l1,lu) -> l1 
                      | _ -> raise Reconstruct
           in
           let proof1 = match plist with p1::[] -> p1 | _ -> raise Reconstruct in
@@ -908,7 +908,7 @@ module Sequent : SequentSig = struct
             ("\\Box R", [premise])
       | Right (Dia_a, plist) ->
           let l1 = 
-            match comp with LabelLookup.Dia l1 -> l1 | _ -> raise Reconstruct
+            match comp with LabelLookup.Dia (l1,lu) -> l1 | _ -> raise Reconstruct
           in
           let proof1 = match plist with p1::[] -> p1 | _ -> raise Reconstruct in
           let seq1 = repl_concl seq l1 in
@@ -916,7 +916,7 @@ module Sequent : SequentSig = struct
             ("\\Diamond R_1", [premise])
       | Right (Dia_b ctxt_id, plist) ->
           let l1 = 
-            match comp with LabelLookup.Dia l1 -> l1 | _ -> raise Reconstruct
+            match comp with LabelLookup.Dia (l1,lu) -> l1 | _ -> raise Reconstruct
           in
           let proof1 = match plist with p1::[] -> p1 | _ -> raise Reconstruct in
           let seq1 = switch_ctxt (repl_concl seq l1) ctxt_id in

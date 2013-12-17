@@ -83,10 +83,10 @@ module Rule : DerivedRuleSig = struct
         let twigs1 = (Twig l1) :: twigs in
         let rules1 = label_rec l2 base_l twigs1 lookup rules in
           rules1
-      | LabelLookup.Box l1 ->
+      | LabelLookup.Box (l1,lu) ->
         let rule = Box (twigs, TrunkL2 l1, base_l) in
           add rules (base_l, rule)
-      | LabelLookup.Dia l1 ->
+      | LabelLookup.Dia (l1,lu) ->
         let rule = Dia (twigs, TrunkP l1, base_l) in
           add rules (base_l, rule)
  
