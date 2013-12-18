@@ -216,13 +216,14 @@ module Sequent : SequentSig = struct
      max_depth_alive is practical call depth used for coverage test *)
   let max_depth_alive = ref 0;;
   let depth_history = ref [];;
+  let branch_history = ref [];;
 
   (* call_level means the current number of prove fun call frames
      max value of call_cnt updates max_depth and max_depth_alive *)
   let call_cnt = ref 0;;
   let call_reset _ = 
     debug_cnt:=0;  call_level:=0;
-    call_cnt:=0; depth_history:=[];
+    call_cnt:=0; depth_history:=[]; branch_history:=[];
     max_depth:=0; max_depth_alive:=0; ();;
   let call_mark _ = 
     call_level:=!call_level+1;
@@ -260,15 +261,27 @@ module Sequent : SequentSig = struct
      Some NotYet : match found and the sequent is not yet completed
                    that is, the sequent found is one of current seq's parents *)
   let test_in_history seq =
+(*    let _ = debug_print "test_in_history > " in
+    let _ = debug_print (print seq) in *)
     let res = List.fold_left (fun last (seqh, closed) -> 
+(*      let _ = debug_print (match closed with NotYet -> "NotYet" | NoProof -> "NoProof" | Done -> "Done"); debug_print " : "; debug_print (print seqh) in *)
       match last with 
       | None -> begin match closed with 
-                | NotYet -> Some NotYet 
+                | NotYet -> None
                 | _ -> if test_incl seqh seq then Some closed else None end
       | Some Done | Some NoProof -> last
       | _ -> print_endline "history error"; None) None !depth_history 
     in
+(*    let _ = debug_print "test_in_history < " in *)
       res;;
+
+  let test_parents seq =
+    let rec fun_parents seq parents =
+      match parents with
+      | [] -> false 
+      | pseq :: tl -> if (test_incl seq pseq) then true else (fun_parents seq tl)
+    in
+      fun_parents seq (List.tl !branch_history)
 
   let get_call_cnt _ = !call_cnt;;
   exception ProverError of string
@@ -772,6 +785,7 @@ module Sequent : SequentSig = struct
       let mark_hist_added = ref false in
       let mark_idx_rev = ref 0 in
       let covered_by = 
+        if cur_depth > 15 then test_in_history seq else(
         if cur_depth+1 > !max_depth_alive then begin
           debug_print (print seq);
           print_bset_all bset_all; 
@@ -782,14 +796,16 @@ module Sequent : SequentSig = struct
               mark_hist_added:=true;
               None end 
             else hist_check 
-        end else None
+        end else None)
       in
       let _ = debug_print (print seq) in
       let _ = call_mark () in
+      let _ = branch_history:=seq::!branch_history in
       let result = 
+        (*if test_parents seq then NoProof
         (* goalset test if the pair of (local context id, goal formula label) is in the goal set, then it is already done *)
         (* the goalset consists of the all the goal id for those sequents in the same domain with lower level *)
-        if goal_id_redun local_id c goalset then Done  
+        else*) if goal_id_redun local_id c goalset then Done  
         else if covered_by=Some NoProof then NoProof
         else if covered_by=Some Done then Done 
         else begin
@@ -815,6 +831,7 @@ module Sequent : SequentSig = struct
       in
       (* post prover operations *) 
       let _ = call_mark_ret () in
+      let _ = branch_history:=List.tl !branch_history in
  	    let _ = if result=NoProof 
               then debug_print ("Fail : "^(print seq))
               else debug_print ("Succeed : "^(print seq)) in
