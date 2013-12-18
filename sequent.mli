@@ -27,6 +27,7 @@ module type SequentSig = sig
   type proof = Left of left_app * (proof list) * (proof list) 
              | Right of right_app * (proof list)
              | Done | NoProof | NotYet
+  type map
 
   val empty_bset : bookset
   val add_bset : bookset -> left_app -> bookset 

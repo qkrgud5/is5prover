@@ -25,6 +25,7 @@ module type SequentSig = sig
   type proof = Left of left_app * (proof list) * (proof list) 
              | Right of right_app * (proof list)
              | Done | NoProof | NotYet
+  type map
 
   val empty_bset : bookset
   val add_bset : bookset -> left_app -> bookset 
@@ -51,7 +52,7 @@ module Sequent : SequentSig = struct
                  | L3 of Rule.ruleid * context_id
   type rule_app = Rule.ruleid * context_id 
   type goal_id = Label.t * context_id
-
+  
   let print_ctxt_id ctxt_id =
     match ctxt_id with
       Global -> "g"
@@ -87,6 +88,10 @@ module Sequent : SequentSig = struct
   type proof = Left of left_app * (proof list) * (proof list) 
              | Right of right_app * (proof list)
              | Done | NoProof | NotYet
+
+  module MapDigest = Map.Make (Digest)
+  type map = (proof) MapDigest.t
+
 
   (* debug switch *)
   let debug = ref false;;
@@ -217,6 +222,9 @@ module Sequent : SequentSig = struct
   let max_depth_alive = ref 0;;
   let depth_history = ref [];;
   let branch_history = ref [];;
+  let map_seq_digest = ref (MapDigest.empty);;
+
+  let seq_to_digest seq = Digest.string (print seq);;
 
   (* call_level means the current number of prove fun call frames
      max value of call_cnt updates max_depth and max_depth_alive *)
@@ -224,6 +232,7 @@ module Sequent : SequentSig = struct
   let call_reset _ = 
     debug_cnt:=0;  call_level:=0;
     call_cnt:=0; depth_history:=[]; branch_history:=[];
+    map_seq_digest := MapDigest.empty;;
     max_depth:=0; max_depth_alive:=0; ();;
   let call_mark _ = 
     call_level:=!call_level+1;
@@ -783,6 +792,7 @@ module Sequent : SequentSig = struct
 
       let cur_depth = !call_level in
       let mark_hist_added = ref false in
+      let seq_digest = seq_to_digest seq in
       let mark_idx_rev = ref 0 in
       let covered_by = 
         if cur_depth > 15 then test_in_history seq else(
@@ -801,11 +811,14 @@ module Sequent : SequentSig = struct
       let _ = debug_print (print seq) in
       let _ = call_mark () in
       let _ = branch_history:=seq::!branch_history in
+      let digest_res = try MapDigest.find seq_digest !map_seq_digest
+                       with Not_found -> NotYet in
       let result = 
-        (*if test_parents seq then NoProof
+        if test_parents seq then NoProof 
+        else if digest_res!=NotYet then let _ = debug_print "digest found" in digest_res
         (* goalset test if the pair of (local context id, goal formula label) is in the goal set, then it is already done *)
         (* the goalset consists of the all the goal id for those sequents in the same domain with lower level *)
-        else*) if goal_id_redun local_id c goalset then Done  
+        else if goal_id_redun local_id c goalset then Done  
         else if covered_by=Some NoProof then NoProof
         else if covered_by=Some Done then Done 
         else begin
@@ -833,8 +846,10 @@ module Sequent : SequentSig = struct
       let _ = call_mark_ret () in
       let _ = branch_history:=List.tl !branch_history in
  	    let _ = if result=NoProof 
-              then debug_print ("Fail : "^(print seq))
-              else debug_print ("Succeed : "^(print seq)) in
+              then let _ = map_seq_digest := MapDigest.add seq_digest NoProof !map_seq_digest in
+                    debug_print ("Fail : "^(print seq))
+              else let _ = map_seq_digest := MapDigest.add seq_digest Done !map_seq_digest in
+                   debug_print ("Succeed : "^(print seq)) in
       (* update history list *)
       let rec update_middle l1 l2 idx fn =
         if l2 = [] then let _ = print_endline "update middle error" in [] 
