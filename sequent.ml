@@ -801,7 +801,7 @@ module Sequent : SequentSig = struct
       let mark_hist_added = ref false in
       let seq_digest = seq_to_digest seq in
       let mark_idx_rev = ref 0 in
-      let covered_by = 
+(*      let covered_by = 
         if cur_depth > 15 then test_in_history seq else(
         if cur_depth+1 > !max_depth_alive then begin
           debug_print (print seq);
@@ -814,7 +814,7 @@ module Sequent : SequentSig = struct
               None end 
             else hist_check 
         end else None)
-      in
+      in *)
       let _ = debug_print (print seq) in
       let _ = call_mark () in
       let _ = branch_history:=seq::!branch_history in
@@ -826,8 +826,8 @@ module Sequent : SequentSig = struct
         (* goalset test if the pair of (local context id, goal formula label) is in the goal set, then it is already done *)
         (* the goalset consists of the all the goal id for those sequents in the same domain with lower level *)
         else if goal_id_redun local_id c goalset then Done  
-        else if covered_by=Some NoProof then NoProof
-        else if covered_by=Some Done then Done 
+     (*   else if covered_by=Some NoProof then NoProof  *)
+     (*   else if covered_by=Some Done then Done  *)
         else begin
           (* the seq survives all the tests. the seq is worth trying to prove (alive) *)
           if cur_depth > !max_depth_alive then max_depth_alive := cur_depth;

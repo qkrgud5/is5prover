@@ -66,12 +66,12 @@ let prove str =
         let _ = if proof = Sequent.NoProof then raise Not_found else () in 
         let _ = Printf.printf "proof found.\n\ntime to prove : %fs\n# of prove function call : %d\n\n" 
                 (Sys.time() -. t) (Sequent.get_call_cnt ()) in
-        let _ = Printf.printf "search space (# of seqs) : %d\n" (Sequent.get_search_space()) in
+(*    let _ = Printf.printf "search space (# of seqs) : %d\n" (Sequent.get_search_space()) in *)
         Sequent.print_proof seq proof lookup rule_map
        ) ^ "\n$$\n\n")
     with Not_found -> 
       let _ = Printf.printf "proof not found.\n\ntime to prove : %fs\n" (Sys.time() -. t) in
-      let _ = Printf.printf "search space (# of seqs) : %d\n" (Sequent.get_search_space()) in
+(*   let _ = Printf.printf "search space (# of seqs) : %d\n" (Sequent.get_search_space()) in *)
         "proof not found"
   in
   let _target_path = !target_path ^ (Printf.sprintf "%03d" !num) ^ ".tex" in
