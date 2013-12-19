@@ -42,6 +42,7 @@ module type SequentSig = sig
   val apply : sequent -> Rule.t -> left_app -> (sequent list*sequent list)
   val prove_fun : sequent -> LabelLookup.map -> Rule.map -> proof
   val set_debug : unit->unit
+  val get_search_space : unit -> int
 end;;
 
 module Sequent : SequentSig = struct
@@ -91,7 +92,6 @@ module Sequent : SequentSig = struct
 
   module MapDigest = Map.Make (Digest)
   type map = (proof) MapDigest.t
-
 
   (* debug switch *)
   let debug = ref false;;
@@ -223,6 +223,13 @@ module Sequent : SequentSig = struct
   let depth_history = ref [];;
   let branch_history = ref [];;
   let map_seq_digest = ref (MapDigest.empty);;
+  let get_search_space () = 
+    let count = ref 0 in
+    let fun1 _ _ = 
+      count := !count + 1; true
+    in
+    let _ =  MapDigest.for_all fun1 !map_seq_digest in
+      !count
 
   let seq_to_digest seq = Digest.string (print seq);;
 

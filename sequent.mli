@@ -44,6 +44,7 @@ module type SequentSig = sig
   val apply : sequent -> Rule.t -> left_app -> (sequent list*sequent list)
   val prove_fun : sequent -> LabelLookup.map -> Rule.map -> proof
   val set_debug : unit->unit
+  val get_search_space : unit->int
 end;;
 
 module Sequent : SequentSig
