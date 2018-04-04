@@ -61,8 +61,10 @@ module Sequent : SequentSig = struct
     match ctxt_id with
       Global -> "g"
     | Local -> "l"
-    | BoxR (Some lastboxl, label) -> (Label.print lastboxl)^","^(Label.print label)
-    | BoxR (None, label) -> "\\text{n},"^(Label.print label)
+    (* | BoxR (Some lastboxl, label) -> (Label.print lastboxl)^","^(Label.print label) *)
+    (* | BoxR (None, label) -> "\\text{n},"^(Label.print label) *)
+    | BoxR (Some lastboxl, label) -> Label.print label
+    | BoxR (None, label) -> Label.print label
     | DiaL label -> Label.print label;;
 
   module RuleApp = struct
@@ -130,7 +132,8 @@ module Sequent : SequentSig = struct
     | Rule.Init _ -> "\\mathsf{Id}" | Rule.Bot _ -> "\\bot";;
 
   (* print_left : Rule.map -> left_app -> string 
-   * format: connective L^{local}(rule_label, rule_index, context_id) 
+   * format: connective L^{a or b}(rule_label, rule_index, context_id)
+   * where a = local or global_a, b = frame or global_b
    * rule_label is the principal formula 
    * rule_index-th derived rule for rule_label, algorithmically determined *)
   let print_left rule_map lapp =
@@ -141,20 +144,22 @@ module Sequent : SequentSig = struct
       let conn = print_conn rule in
       let conn =
         match rule with
-          Rule.Init _ -> "\\mathsf{Id}^{local}" 
-        | _ -> conn ^ " \\mathsf{L}^{local}"
+          Rule.Init _ -> "\\mathsf{Id}^{a}"
+        | _ -> conn ^ " \\mathsf{L}^{a}"
       in
-      conn ^ " (" ^ (print_label rule_label) ^ "," ^ string_of_int(idx)  ^ "," ^ (print_ctxt_id ctxt_id) ^ ")"
+      conn ^ " (" ^ (print_label rule_label) ^ "," ^ (print_ctxt_id ctxt_id) ^ ")"
+      (* conn ^ " (" ^ (print_label rule_label) ^ "," ^ string_of_int(idx)  ^ "," ^ (print_ctxt_id ctxt_id) ^ ")" *)
     | L3 (ruleid, ctxt_id) ->
       let Rule.ID (rule_label, idx) = ruleid in
       let rule = Rule.findi rule_map ruleid in
       let conn = print_conn rule in
       let conn =
         match rule with
-          Rule.Init _ -> "\\mathsf{Id}^{frame}" 
-        | _ -> conn ^ " \\mathsf{L}^{frame}"
+          Rule.Init _ -> "\\mathsf{Id}^{b}"
+        | _ -> conn ^ " \\mathsf{L}^{b}"
       in
-      conn ^ " (" ^ (print_label rule_label) ^ "," ^ string_of_int(idx)  ^ "," ^ (print_ctxt_id ctxt_id) ^ ")";;
+      conn ^ " (" ^ (print_label rule_label) ^ "," ^ (print_ctxt_id ctxt_id) ^ ")";;
+      (* conn ^ " (" ^ (print_label rule_label) ^ "," ^ string_of_int(idx)  ^ "," ^ (print_ctxt_id ctxt_id) ^ ")";; *)
 
   (* print_ctxt : Label.t list * context_id -> string *)
   let print_ctxt (llist, ctxtid) =
@@ -690,7 +695,7 @@ module Sequent : SequentSig = struct
           let test_level = !call_level in
           let (f,g,l,c,bset_all) = seq in
           let (local_list, local_id) = l in
-          let (global_list, _) = g in
+          let (global_list, global_id) = g in
           let boxr, diar, disjr, botr, initr, boxt, diat, boxR, diaR, lastBoxL, goalset, pset = bset_all in
           (* phc - another begin end enclosure, be cautious! *)
           if BSetG.mem (c, local_id) pset then NoProof
@@ -788,16 +793,16 @@ module Sequent : SequentSig = struct
               ret
             in
 
-            (* focus_label_local : Label.t -> proof
-             * applies a derived rule on label in the local context *)
-            let focus_label_local label =
+            (* focus_label_local : context_id -> Label.t -> proof
+             * applies a derived rule on label in the local or global context *)
+            let focus_label_local ctxt_id label =
               let rule_list = 
                 try Rule.find rule_map label
                 with Not_found -> []
               in
               (* fun1 : Rule.ruleid * Rule.t -> proof *)
               let fun1 (ruleid, rule) =
-                let lapp = L1 (ruleid, local_id) in
+                let lapp = L1 (ruleid, ctxt_id) in
                 if applicable seq rule lapp then begin
                   let _ = debug_print ("focus_label_local "^(print seq)^" "^(print_left rule_map lapp)) in
                   let (trunks, twigs) = apply seq rule lapp in
@@ -816,7 +821,8 @@ module Sequent : SequentSig = struct
               prove_disj_list rule_list fun1
             in 
 
-            (* focus_label_frame : context_id -> Label.t -> proof *)
+            (* focus_label_frame : context_id -> Label.t -> proof
+             * applies a derived rule on label in the global or an accessible context *)
             let focus_label_frame ctxt_id label =
               let rule_list = Rule.find rule_map label in
               let fun1 (ruleid, rule) = 
@@ -852,14 +858,14 @@ module Sequent : SequentSig = struct
             (* applies a left rule on a formula in the local context *) 
             let prove_local _ =
               let _ = debug_print "> prove_local" in
-              prove_disj_list local_list focus_label_local
+              prove_disj_list local_list (focus_label_local local_id)
             in
 
             (* applies a left rule on a formula in the global context;
              * adds a subformula into the local context *) 
             let prove_global_L1 _ =
               let _ = debug_print "> prove_global_L1" in
-              prove_disj_list global_list focus_label_local
+              prove_disj_list global_list (focus_label_local global_id)
             in
 
             (* applies a left rule on a formula in the global context;
@@ -1080,6 +1086,16 @@ module Sequent : SequentSig = struct
         let print_pair = fun seq proof->print_proof seq proof lookup rule_map in
         let trunk_str = List.map2 print_pair trunk_seq trunk_proof in
         let twig_str = List.map2 print_pair twig_seq twig_proof in
+        let global_list, global_id = g in
+        let principal =
+          match rule with
+            Rule.Box (_, _, l) -> l
+          | Rule.Dia (_, _, l) -> l
+          | Rule.Disj (_, _, _, l) -> l
+          | Rule.Init (_, l, _) -> l
+          | Rule.Bot (_, l) -> l
+        in
+        let ctxt_id = if List.mem principal global_list then global_id else ctxt_id in
         (print_left rule_map (L3 (ruleid, ctxt_id)), List.concat [trunk_str;twig_str])
       | Done -> ("Done", [])
       | NoProof -> ("NoProof", [])
