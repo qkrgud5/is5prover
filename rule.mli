@@ -5,7 +5,7 @@
 (* {luscani, gla}@postech.ac.kr *)
 
 
-(* DerivedRuleSig.t specifies details of derived rules *)
+(* DerivedRuleSig.t specifies the details of derived rules *)
 
 open Label
 open Formula

@@ -11,7 +11,12 @@ open Labellookup
 
 module type DerivedRuleSig = sig
   type ruleid = ID of (Label.t * int)
+  (* Label.t is the label of the goal formula in the twig sequent *)
   type twig = Twig of Label.t
+  (* TrunkL1 : local context 
+   * TrunkL2 : global context
+   * TrunkP  : frame 
+   * Label.t : subformula added to the context in the trunk *)
   type trunk = TrunkL1 of Label.t | TrunkL2 of Label.t | TrunkP of Label.t
   type t = Box of ((twig list) * trunk * Label.t)   (* TrunkL2, focus *)
          | Dia of ((twig list) * trunk * Label.t)   (* TrunkP, focus *)
@@ -30,6 +35,9 @@ module type DerivedRuleSig = sig
 end;;
 
 module Rule : DerivedRuleSig = struct
+  (* Label.t : the principal formula of the conclusion of the derived rule
+   * ID(l, n) : this rule is the n-th derived rule for l among the rules 
+   * that have l as the principal formula *)
   type ruleid = ID of (Label.t * int)
   type twig = Twig of Label.t
   type trunk = TrunkL1 of Label.t | TrunkL2 of Label.t | TrunkP of Label.t
@@ -42,10 +50,12 @@ module Rule : DerivedRuleSig = struct
   module MapLabel = Map.Make (Label)
   type map = ((ruleid*t) list) MapLabel.t
 
-  let empty = MapLabel.empty 
+  let empty = MapLabel.empty
+  (* add : map -> Label.t * t -> map 
+   * l is the principal formula of the conclusion of the derived rule. *)
   let add m (l, r) = 
     let orig_list = 
-      try 
+      try
         MapLabel.find l m
       with Not_found -> []
     in
@@ -59,7 +69,10 @@ module Rule : DerivedRuleSig = struct
     let (id, rule) = List.nth rulelist ((List.length rulelist)-idx-1) in
       rule
   
-  (* traverse label tree struct in order to reach stoup introduction *)
+  (* traverses the label tree structure in order to reach stoup introduction *)
+  (* label_rec : Label.t -> Label.t -> twig list -> LabelLookup.map -> map -> rules 
+   * l is the current principal formula.
+   * base_l is the principal formula of the conclusion of the derived rule. *)
   let rec label_rec l base_l twigs lookup rules = 
     let c, s = LabelLookup.find lookup l in
       match c with
@@ -90,7 +103,8 @@ module Rule : DerivedRuleSig = struct
         let rule = Dia (twigs, TrunkP l1, base_l) in
           add rules (base_l, rule)
  
-  (* the label l stands for printcipal formula*)
+  (* the label l stands for the principal formula *)
+  (* rule_gen_label : LabelLookup.map -> Label.t -> map -> map *)
   let rule_gen_label lookup l rules =
     let c, s = LabelLookup.find lookup l in
       let res =
@@ -106,17 +120,27 @@ module Rule : DerivedRuleSig = struct
           else rules
       in
         res
- 
+
+  (* rule_gen : Label.map -> LabelLookup.map -> map *) 
   let rule_gen lmap lookup =
     Label.iter lmap empty (rule_gen_label lookup)
 
   let print_twig (Twig l) =
-    "\\seqc{}{}{}{L_{" ^ (Label.print l) ^ "}} "
+    "\\seqc{}{}{}{\\bf L_{" ^ (Label.print l) ^ "}}"
   let print_trunk trunk_premise =
     match trunk_premise with
-      TrunkL1 l1 -> "\\seqc{}{}{, L_{" ^ (Label.print l1) ^ "}}{M} "
-    | TrunkL2 l1 -> "\\seqc{}{, L_{" ^ (Label.print l1) ^ "}}{}{M} "
-    | TrunkP l1 -> "\\seqc{;L_{" ^ (Label.print l1) ^ "}}{}{}{M} "
+      TrunkL1 l1 -> "\\seqc{}{}{, {\\bf L_{" ^ (Label.print l1) ^ "}}}{M}"
+    | TrunkL2 l1 -> "\\seqc{}{, {\\bf L_{" ^ (Label.print l1) ^ "}}}{}{M}"
+    | TrunkP l1 -> "\\seqc{;{\\bf L_{" ^ (Label.print l1) ^ "}}}{}{}{M}"
+
+  (* label is the principal formula of the conclusion sequent *)
+  let print_twig2 label (Twig l) =
+    "\\seqc{}{}{, " ^ label ^ "}{\\bf L_{" ^ (Label.print l) ^ "}}"
+  let print_trunk2 label trunk_premise =
+    match trunk_premise with
+      TrunkL1 l1 -> "\\seqc{}{}{, " ^ label ^ ", {\\bf L_{" ^ (Label.print l1) ^ "}}}{M}"
+    | TrunkL2 l1 -> "\\seqc{}{, {\\bf L_{" ^ (Label.print l1) ^ "}}}{, " ^ label ^ "}{M}"
+    | TrunkP l1 -> "\\seqc{;{\\bf L_{" ^ (Label.print l1) ^ "}}}{}{, " ^ label ^ "}{M}"
 
   let twigs_of_rule rule =
     match rule with
@@ -135,32 +159,40 @@ module Rule : DerivedRuleSig = struct
     | Bot (_, l) -> l
 
   let quad_join s1 s2 = 
-    if s1="" && s2="" then ""
-    else (if s1="" then s2 else (s1 ^ "\\quad" ^ s2))
+    if s1 = "" && s2 = "" then ""
+    else if s1 = "" then s2
+    else if s2 = "" then s1
+    else s1 ^ " \\quad " ^ s2
 
-  let print_rule rule = 
+  (* IM: the principal formula of the conclusion sequent should also appear in the premises *)
+  let print_rule rule =
+    (* the principal formula of the conclusion sequent *)
+    let label_str = "L_{" ^ (Label.print (principal_of_rule rule)) ^ "}" in
     let twigs = twigs_of_rule rule in
-    let twigs_str = List.fold_left (fun x y -> x ^ (print_twig y)) "" twigs in
-    let twigs_str = if twigs_str="" then ""
-                    else ("\\overbrace{"^twigs_str^"}^{\\text{twigs}}") in
+    (* let twigs_str = List.fold_left (fun x y -> x ^ (print_twig y)) "" twigs in *)
+    let twigs_str = List.map (print_twig2 label_str) twigs in
+    let twigs_str = String.concat " \\quad " twigs_str in
+    let twigs_str = if twigs_str = "" then ""
+                    else ("\\overbrace{" ^ twigs_str ^ "}^{\\text{twigs}}") in
     let trunk_str =
       match rule with
-        Box (_, t1, _) -> "\\overbrace{"^(print_trunk t1)^"}^{\\text{trunk}}"
-      | Dia (_, t1, _) -> "\\overbrace{"^(print_trunk t1)^"}^{\\text{trunk}}"
-      | Disj (_, t1, t2, _) -> "\\overbrace{"^
-                               (quad_join (print_trunk t1) (print_trunk t2))^
-                               "}^{\\text{trunks}}"
+        Box (_, t1, _) -> "\\overbrace{" ^ (print_trunk2 label_str t1) ^ "}^{\\text{trunk}}"
+      | Dia (_, t1, _) -> "\\overbrace{" ^ (print_trunk2 label_str t1) ^ "}^{\\text{trunk}}"
+      | Disj (_, t1, t2, _) ->
+        "\\overbrace{" ^
+        (quad_join (print_trunk2 label_str t1) (print_trunk2 label_str t2)) ^
+        "}^{\\text{trunks}}"
       | Init (_, _, _) -> ""
       | Bot (_, _) -> ""
     in
     let concl_str = 
-      let label_str = "L_{"^(Label.print (principal_of_rule rule))^"}" in
+      let label_str = "L_{" ^ (Label.print (principal_of_rule rule)) ^ "}" in
       match rule with
-        Init (_, l, latom) -> "\\seqc{}{}{," ^ label_str ^ 
-                          "}{L_{" ^ (Label.print latom) ^ "}}"
-      | _ -> "\\seqc{}{}{,"^label_str^"}{M}"
+        Init (_, l, latom) ->
+        "\\seqc{}{}{, {\\bf " ^ label_str ^ "}}{L_{" ^ (Label.print latom) ^ "}}"
+      | _ -> "\\seqc{}{}{, {\\bf " ^ label_str ^ "}}{M}"
     in
-      "$$\n\\infer {"^concl_str^"}{"^(quad_join twigs_str trunk_str)^"}\n$$\n"
+      "$$\n\\infer {" ^ concl_str ^ "}{" ^ (quad_join twigs_str trunk_str) ^ "}\n$$\n"
 
   let print_map lmap m =
     let print_rules m l str =
