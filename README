@@ -1,15 +1,15 @@
 
-A Theorem Prover for Intuitionistic Modal Logic S5 (IS5)
+A Theorem Prover for Intuitionistic Modal Logic IS5
 
 
 Author : Hyungchul Park (PL lab, POSTECH)
 
 
 usage: ./prover [-i input_file] [-o output_tex] [-n] [-s shell_script]
-  -i : set optional input file path, the input file should contain one or more lines of formula
-  -o : set optional file path for tex file
-  -n : this switch prevent proof search
-  -s : shell scripts which runs after generating tex output file
+  -i : set an input file path, the input file may contain one or more lines of formulas
+  -o : set an output tex file path
+  -n : this switch prevents proof search
+  -s : shell script which runs after the output tex file is generated
   -help  Display this list of options
   --help  Display this list of options
 
@@ -17,24 +17,24 @@ Input Syntax
 
 P := [a-Z] ([alphanum])*                  # atomic formulas 
 A := P | true | false | ~ A | A & A | A v A | A -> A | box A | dia A | (A)                
-     | A <-> A               # syntatic sugar (A<->B means (A->B & B->A))
+     | A <-> A                            # syntatic sugar (A<->B means (A->B & B->A))
 
 
 Sample Input
 
 # provable formulas
 box (a -> b) -> (box a -> box b)  # K axiom
-box a -> a        # T axiom
-dia a -> box (dia a)      # 5 axiom
+box a -> a                        # T axiom
+dia a -> box (dia a)              # 5 axiom
 dia a -> ~ (box (~a))
 a & b -> ~(~a v ~b)
 p1 & dia p2 -> box (p2 -> p3) -> dia (p2 v p3)
 (box((box((box p1) -> (box p1))) -> false)) -> false
 dia p1 -> box (p1 -> p2) -> (dia p2 -> p3) -> box (p3 -> p4) -> (dia p4 -> p5) -> p5
 
-# not provable formulas
-a <-> ~~a       # double negation
-a v ~a          # law of excluded middle
+# unprovable formulas
+a <-> ~~a                         # double negation
+a v ~a                            # law of excluded middle
 dia a -> a
 dia a -> box a
 ~ (box (~a)) -> dia a
@@ -48,5 +48,6 @@ Upon completing a proof search, the theorem prover generates a latex file result
 
 Update history
 
-- Dec  27, 2012 : initial release
-- July 22, 2013 : Bug fixed(formula signs), proof search optimization(avoid obvious redundancy in the proof search procedure)
+- Dec 27, 2012 : initial release
+- Jul 22, 2013 : bug fixed(formula signs), proof search optimization(avoid obvious redundancy in the proof search procedure)
+- Apr  4, 2018 : updated latex code generation(the syntax is changed), fixed some minor bugs, added comments in the code, removed tabs

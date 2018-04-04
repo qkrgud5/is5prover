@@ -21,7 +21,7 @@ print_endline "-----------------------------------------------------------------
 print_endline "Input Syntax";
 print_endline "P := [a-Z] ([alphanum])*            # atomic formulas";
 print_endline "A := P | true | false | ~ A | A & A | A v A | A -> A | box A | dia A | (A)";
-print_endline "     | A <-> A         # syntatic sugar (A<->B means (A->B & B->A))";
+print_endline "     | A <-> A                      # syntatic sugar (A<->B means (A->B & B->A))";
 print_endline "";
 print_string  "Default output tex file is set to ";
 print_endline (!target_path);
@@ -34,10 +34,10 @@ let input_path = ref ""
 let usage = "usage: " ^ Sys.argv.(0) ^ " [-i input_file] [-o output_tex] [-n] [-s shell_script]"
 
 let speclist = [
-  ("-i", Arg.String (fun s -> input_path := s), ": set optional input file path, the input file should contain lines of formulas");
-  ("-o", Arg.String (fun s -> target_path := s), ": set optional file path for tex file");
-  ("-n", Arg.Set no_proof, ": this switch prevent proof search");
-  ("-s", Arg.String (fun s -> script := s), ": shell scripts which runs after generating tex output file");
+  ("-i", Arg.String (fun s -> input_path := s), ": set an input file path, the input file may contain one or more lines of formulas");
+  ("-o", Arg.String (fun s -> target_path := s), ": set an output tex file path");
+  ("-n", Arg.Set no_proof, ": this switch prevents proof search");
+  ("-s", Arg.String (fun s -> script := s), ": shell script which runs after the output tex file is generated");
   ("-d", Arg.Set debug, ": debug mode")]
 
 let () = 
