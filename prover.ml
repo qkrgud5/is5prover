@@ -21,7 +21,7 @@ print_endline "-----------------------------------------------------------------
 print_endline "Input Syntax";
 print_endline "P := [a-Z] ([alphanum])*            # atomic formulas";
 print_endline "A := P | true | false | ~ A | A & A | A v A | A -> A | box A | dia A | (A)";
-print_endline "     | A <-> A                      # syntatic sugar (A<->B means (A->B & B->A))";
+print_endline "     | A <-> A                      # syntactic sugar (A<->B means (A->B & B->A))";
 print_endline "";
 print_string  "Default output tex file is set to ";
 print_endline (!target_path);
