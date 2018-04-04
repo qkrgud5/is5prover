@@ -2,7 +2,7 @@
 A Theorem Prover for Intuitionistic Modal Logic IS5
 
 
-Author : Hyungchul Park (PL lab, POSTECH)
+Author : Hyungchul Park, Hyeonseung Im, Sungwoo Park
 
 
 usage: ./prover [-i input_file] [-o output_tex] [-n] [-s shell_script]
