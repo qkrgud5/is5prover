@@ -45,8 +45,8 @@ module LabelLookup : LabelLookupSig = struct
   module MapLabel = Map.Make (Label)
   type map = (composite*sign) MapLabel.t
 
-  (* sign F1 is subset of sign L1 since L1 can always be converted into F1 
-     by signed subformula rules.  Here we represent a signe of both F1 and L1 as L1. *)
+  (* sign F1 is a subset of sign L1 since L1 can always be converted into F1 
+     by signed subformula rules. Here we represent a sign of both F1 and L1 as L1. *)
   let merge_sign_l1 a b =
     match a with
       L1 -> L1
@@ -59,8 +59,8 @@ module LabelLookup : LabelLookupSig = struct
     | F2 -> (match b with L2 -> L2 | _ -> F2)
     | N2 -> b
 
-  (* call merge_sing when there already exists sign info in labellookup and
-     we like to update with supset of sign *)
+  (* call merge_sign when there already exists the sign info in labellookup and
+     we'd like to update with the subset of the sign *)
   let merge_sign a b =
     match a with
       R -> (match b with
