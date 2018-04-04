@@ -1,0 +1,52 @@
+false -> A
+A -> true
+(A v B) v C <-> (C v B) v A
+box A v (box B v box C) -> dia C v (dia B v dia A)
+A & (B & C) <-> (C & A) & B
+dia A & (box B v C) <-> (dia A & box B) v (dia A & C)
+(box (A -> B)) -> ((box A) -> (box B))
+(box A) -> A
+(box A) -> (box (box A))
+A -> (dia A)
+(dia (dia A)) -> (dia A)
+(box (A -> B)) -> ((dia A) -> (dia B))
+(((box C) -> E) -> A) -> (((box C) -> E) -> A)
+(((dia D) -> E) -> B) -> (((dia D) -> E) -> B)
+(box A) -> (dia A)
+(dia A) -> (box (dia A)) 
+(dia (box A)) -> (box (dia A)) 
+(box (dia A)) -> (box (dia A))
+A -> (box (dia A)) 
+(box (A -> (dia B))) -> ((dia A) -> (dia B))
+(dia A) -> (((dia A) -> (dia B)) -> (dia B))
+box (((box A) -> (box B)) -> (box (C -> (box D)))) -> (((box A) -> (box B)) -> (box (C ->(box D))))
+((b <-> c) -> (a & b & c)) & ((c <-> a) -> (a & b & c)) & ((a <-> b) -> (a & b & c)) -> (a & b & c)
+~~(~p1 v ~p2 v ~p3 v (p1 & p2 & p3))
+((a1 <-> a2) <-> a3) <-> (a3 <-> (a2 <-> a1))
+~(p1 -> p2) -> (p2 -> p1)
+(p1 -> p2) & (p2 -> (p3 & p1)) & (p3 -> (p1 v p2)) -> (p3 <-> p1)
+(p1 v (p2 & p3)) <-> ((p1 v p2) & (p1 v p3))
+~~(p1 v ~p1)
+~~((p1 & p2) v (~p1 v ~p2))
+~~((p1 & (p2 & p3)) v (~p1 v (~p2 v ~p3)))
+(((((p1 <-> p2) <-> p3) <-> p4) <-> (p4 <-> (p3 <-> (p2 <-> p1)))))
+(((((dia p1 -> p2) & (((dia p3 -> dia p4) -> p5) & (((dia p4 -> dia p6) -> p1) & (((dia p7 -> dia p8) -> p6) & ((p9 -> p5) -> p8))))) -> p2) & ((((p9 -> p5) -> p8) & (((dia p7 -> dia p8) -> p6) & (((p4 -> p6) -> p1) & (((p3 -> p4) -> p5) & (p1 -> p2))))) -> p2)))
+(((((p1 -> p2) & (((p3 -> p4) -> p5) & (((p4 -> p6) -> p1) & (((p7 -> p8) -> p6) & (((p9 -> p10) -> p8) & ((p11 -> p5) -> p10)))))) -> p2) & ((((p11 -> p5) -> p10) & (((p9 -> p10) -> p8) & (((p7 -> p8) -> p6) & (((p4 -> p6) -> p1) & (((p3 -> p4) -> p5) & (p1 -> p2)))))) -> p2)))
+(p1) & ((p2 -> (p2 -> p3))) & ((p4 -> (p4 -> p2))) & ((p5 -> (p5 -> p4))) & ((p6 -> (p6 -> p5))) & ((p7 -> (p7 -> p6))) & ((p8 -> (p8 -> p7))) & ((p1 -> (p1 -> p8))) -> (p3)
+(((box A v dia B) -> (box C & box box D) -> (dia B & dia dia C) -> dia E) v box F) -> (dia F v((box A v dia B) -> (box C & box box D) -> (dia B & dia dia C) -> dia E))
+((p1 v p2)) & ((p3 v p4)) & ((p5 v p6)) -> (((p1 & p3) v ((p1 & p5) v ((p3 & p5) v ((p2 & p4) v ((p2 & p6) v (p4 & p6)))))))
+(box (p1 v p2)) & (box (box p3 v box p4)) & ((box p5 v box p6)) -> (((dia p1 & dia p3) v ((dia p1 & p5) v ((dia p3 & p5) v ((dia p2 & dia p4) v ((dia p2 & p6) v (dia p4 & p6)))))))
+((((p1 & (p2 & (p3 & (p4 & (p5 & p6))))) v ((p1 -> p7) v ((p2 -> p7) v ((p3 -> p7) v ((p4 -> p7) v ((p5 -> p7) v (p6 -> p7))))))) -> p7)) -> (p7)
+((((dia p1 &(box p2 &(dia p3 & (box p4 &dia p5))))v((dia p1 -> p6)v((box p2 -> p6)v((dia p3 -> p6) v ((box p4 -> p6) v (dia p5 -> p6)))))) -> p6)) -> (p6)
+(p1) & ((p2 -> ((p3 v p4)v p3))) & ((p5 -> ((p2 v p6)v p2))) & (((p5 v p7)v p5)) -> ((p7 v ((p5 & p6) v ((p2 & p4) v (p3 & p1)))))
+(((~dia p1) v (~dia p2))) -> (((dia ~p2) v (dia ~p1)))
+(p1) & box ((p2 -> ((box p3 v box p4) v box p3))) & box ((p5 -> ((p2 v p6) v p2))) & (((p5 v p7) v p5)) -> dia ((p7 v ((dia p5 & p6) v ((p2 & p4) v (p3 & p1)))))
+((box D <-> (C -> dia A)) <-> dia R) -> (dia R <-> ((C -> dia A)) <-> box D)
+(((box box p1) -> ((~(~dia dia p1)))) -> ((p1) -> ((~(~dia p1))))) -> (((box box p1) -> ((~(~dia dia p1)))) -> ((p1) -> ((~(~dia p1)))))
+true & ((A <-> B) -> A & B & C) & ((B <-> C) -> A & B & C) & ((C <-> A) -> A & B & C) -> A & B & C
+true & ((A <-> B) -> A & B & C & D & E) & ((B <-> C) -> A & B & C & D & E) & ((C <-> D) -> A & B & C & D & E) & ((D <-> E) -> A & B & C & D & E) & ((E <-> A) -> A & B & C & D & E) -> A & B & C & D & E
+(A v B v C) & (D v E v F) & (G v H v I) -> (A & D & G) v (A & D & H) v (A & D & I) v (A & E & G) v (A & E & H) v (A & E & I) v (A & F & G) v (A & F & H) v (A & F & I) v (B & D & G) v (B & D & H) v (B & D & I) v (B & E & G) v (B & E & H) v (B & E & I) v (B & F & G) v (B & F & H) v (B & F & I) v (C & D & G) v (C & D & H) v (C & D & I) v (C & E & G) v (C & E & H) v (C & E & I) v (C & F & G) v (C & F & H) v (C & F & I)
+(A & B & C v ((A -> F) v (B -> F) v (C -> F)) -> F) -> F
+C & (A -> A -> D) & (B -> B -> A) & (C -> C -> B) -> D
+((A -> I) & ((H -> E) -> D) & ((E -> B) -> A) & ((F -> C) -> B) & ((G -> D) -> C) -> I) & (((G -> D) -> C) & (((F -> C) -> B) & (((E -> B) -> A) & (((H -> E) -> D) & (A -> I)))) -> I)
+((A <-> B) <-> C) <-> (C <-> (B <-> A))
