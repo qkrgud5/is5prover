@@ -19,8 +19,8 @@ module Formula : FormulaSig = struct
   type t = Top | Bot | Atom of atom | Conj of t*t
          | Disj of t*t | Imp of t*t | Box of t | Dia of t
 
-  (* parser produce Def.t type AST which needs to be converted into Formula.t
-		 The conversion is straight forward *)
+  (* parser produces a Def.t type AST which needs to be converted into a Formula.t type AST
+     The conversion is straightforward *)
   let rec convert f = 
     match f with
       Def.Top -> Top
@@ -31,17 +31,17 @@ module Formula : FormulaSig = struct
     | Def.Imp  (a, b) -> Imp (convert a, convert b)
     | Def.Box a -> Box (convert a)
     | Def.Dia a -> Dia (convert a)
-		| Def.Neg a -> Imp (convert a, Bot)
+    | Def.Neg a -> Imp (convert a, Bot)
 
-  (* parse string typed input to generate type t formula *)
+  (* parses a string typed input to generate a formula of type t *)
   let parse s =
-		let s = s ^ "\n" in 
+    let s = s ^ "\n" in 
     try
       let lexbuf = Lexing.from_string s in
         convert (Parser.main Lexer.token lexbuf)
     with Lexer.Eof -> exit 0
 
-  (* simple printing function for testing *)
+  (* a simple printing function for testing *)
   let rec print f = 
     match f with
       Top -> Def.top
@@ -57,7 +57,7 @@ module Formula : FormulaSig = struct
     | Dia f1 -> "(" ^ Def.dia ^ (print f1) ^ ")"
 
   (* operator precedence of the formula.
-     It returns the precedence level of top level operator. *)
+     returns the precedence level of the top level operator. *)
   let prec f =
     match f with
       Top -> 1
@@ -69,5 +69,3 @@ module Formula : FormulaSig = struct
     | Disj (f1, f2) -> 4
     | Imp (f1, f2) -> 5
 end;;
-
-

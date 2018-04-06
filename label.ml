@@ -25,9 +25,10 @@ module type LabelSig = sig
 end;;
 
 module Label : LabelSig = struct
-	(* label is a number for each formula. 
-		If two formulas are identical, then they are mapped to the same label.
-		Label.map type maintains the mapping info *)
+
+  (* label is a number for each formula. 	       
+   * If two formulas are identical, then they are mapped to the same label.
+   * Label.map type maintains the mapping info *)
   type t = int
   type map = (Formula.t * int) list
 
@@ -39,14 +40,15 @@ module Label : LabelSig = struct
         [] -> [(f, n)]
       | (fh, nh)::t -> if fh=f then m else (fh, nh)::(add1 t f (n+1))
     in
-      add1 m f 1
+    add1 m f 1
 
   let rec find m f =
     match m with
       [] -> let _ = print_string "Not_found error at Label.find:\n" in
             let _ = print_string (Formula.print f); print_string "\n" in
-              let _ = print_string "in Label find" in raise Not_found
-    | (fh, nh)::t -> if fh=f then (nh) else (find t f)
+            let _ = print_string "in Label find" in
+            raise Not_found
+    | (fh, nh)::t -> if fh = f then nh else (find t f)
 
   let rec iter m a f =
     match m with
@@ -61,7 +63,7 @@ module Label : LabelSig = struct
   let rec print l =
     string_of_int l
 
-	
+
   let labeling f =
     let rec fun1 f lmap =
       let new_lmap = add lmap f in
@@ -70,23 +72,23 @@ module Label : LabelSig = struct
       | Formula.Bot -> new_lmap
       | Formula.Atom p -> new_lmap
       | Formula.Conj (f1, f2) ->
-          let lmap1 = fun1 f1 new_lmap in
-          let lmap2 = fun1 f2 lmap1 in
-            lmap2
+        let lmap1 = fun1 f1 new_lmap in
+        let lmap2 = fun1 f2 lmap1 in
+        lmap2
       | Formula.Disj (f1, f2) ->
-          let lmap1 = fun1 f1 new_lmap in
-          let lmap2 = fun1 f2 lmap1 in
-            lmap2
+        let lmap1 = fun1 f1 new_lmap in
+        let lmap2 = fun1 f2 lmap1 in
+        lmap2
       | Formula.Imp (f1, f2) ->
-          let lmap1 = fun1 f1 new_lmap in
-          let lmap2 = fun1 f2 lmap1 in
-            lmap2
+        let lmap1 = fun1 f1 new_lmap in
+        let lmap2 = fun1 f2 lmap1 in
+        lmap2
       | Formula.Box f1 ->
-          fun1 f1 new_lmap
+        fun1 f1 new_lmap
       | Formula.Dia f1 ->
-          fun1 f1 new_lmap
+        fun1 f1 new_lmap
     in
-      fun1 f empty
+    fun1 f empty
 
 
   type primitive_sign = PL1 | PL2 | PF1 | PF2 | PR
@@ -102,15 +104,15 @@ module Label : LabelSig = struct
         | Formula.Atom p -> Formula.print f
         | Formula.Conj (f1, f2) -> 
           let s1 = (if s=PR then PR else PF1) in
-					let str1 = fun1 f1 prec_f s1 lmap in
-					let str2 = fun1 f2 prec_f s1 lmap in
-						Printf.sprintf "%s %s %s" str1 (Def.Tex.conj) str2
+	  let str1 = fun1 f1 prec_f s1 lmap in
+	  let str2 = fun1 f2 prec_f s1 lmap in
+          Printf.sprintf "%s %s %s" str1 (Def.Tex.conj) str2
         | Formula.Disj (f1, f2) ->
           let s1 = (if s=PR then PR else PL1) in
           let s2 = (if s=PR then PR else PL1) in
-					let str1 = fun1 f1 prec_f s1 lmap in
-					let str2 = fun1 f2 prec_f s2 lmap in
-						Printf.sprintf "%s %s %s" str1 Def.Tex.disj str2
+	  let str1 = fun1 f1 prec_f s1 lmap in
+	  let str2 = fun1 f2 prec_f s2 lmap in
+          Printf.sprintf "%s %s %s" str1 Def.Tex.disj str2
         | Formula.Imp (f1, f2) ->
           let s1 = (if s=PR then PL1 else PR) in
           let s2 =
@@ -118,9 +120,9 @@ module Label : LabelSig = struct
               PR -> PR | PL1 -> PF1 | PF1 -> PF1
             | PL2 -> PF2 | PF2 -> PF2
           in
-					let str1 = fun1 f1 prec_f s1 lmap in
+	  let str1 = fun1 f1 prec_f s1 lmap in
           let str2 = fun1 f2 prec_f s2 lmap in
-						Printf.sprintf "%s %s %s" str1 Def.Tex.imp str2
+	  Printf.sprintf "%s %s %s" str1 Def.Tex.imp str2
         | Formula.Box f1 -> 
           let s1 = (if s=PR then PR else PL2) in
           "\\Box" ^ (fun1 f1 prec_f s1 lmap)
@@ -145,7 +147,7 @@ module Label : LabelSig = struct
         else
           if String.length tex_str > 2000 then
             (let _ = tex_list := tex_str :: (!tex_list) in
-              "L_{" ^ (print (find lmap f)) ^ "}")
+             "L_{" ^ (print (find lmap f)) ^ "}")
           else
             tex_str
     in
